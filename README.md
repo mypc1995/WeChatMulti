@@ -1,5 +1,9 @@
 # 微信多开工具（WeChatMulti）
 
+[![CI](https://github.com/mypc1995/WeChatMulti/actions/workflows/ci.yml/badge.svg)](https://github.com/mypc1995/WeChatMulti/actions/workflows/ci.yml)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/mypc1995/WeChatMulti.svg)](https://github.com/mypc1995/WeChatMulti/releases/latest)
+
 一键同时启动多个微信 4.x Windows 客户端实例，每个实例拥有独立的登录态与数据目录。
 
 ![界面预览](preview.png)
@@ -143,6 +147,45 @@ WeChatMulti.sln
 ├─ WeChatMulti.Preview/    开发用：界面渲染截图
 ├─ WeChatMulti.Smoke/      开发用：多开冒烟测试
 └─ release/                可直接下载运行的 Windows 可执行文件
+```
+
+---
+
+## 自动构建与发布
+
+仓库配置了两个 GitHub Actions 工作流：
+
+| 工作流 | 触发条件 | 作用 |
+| --- | --- | --- |
+| `ci.yml` | push 到 `main`、提交 PR、手动触发 | 还原依赖 + 构建整个解决方案，并用无效路径校验命令行模式的退出码 |
+| `release.yml` | 推送形如 `v*` 的标签，或手动触发 | 构建 net48 产物、打包 zip、创建或更新 Release 并上传附件 |
+
+打标签即可自动发布：
+
+```cmd
+git tag -a v6.1.0 -m "v6.1.0"
+git push origin v6.1.0
+```
+
+`release.yml` 会在 `windows-latest` 上跑，`dotnet publish` 出 `WeChatMulti.exe` 与 `WeChatMulti.exe.config`，打包成 `WeChatMulti-<tag>.zip`，然后创建 Release。若该标签的 Release 已存在，则只覆盖附件。
+
+---
+
+## 许可
+
+本项目基于 **GNU 通用公共许可证第 3 版（GPL-3.0）** 发布，完整条款见 [LICENSE](LICENSE)。
+
+```
+Copyright (C) 2026 Evil_Pig
+```
+
+你可以在遵守 GPL-3.0 的前提下使用、修改与再分发本项目，但**分发衍生作品时必须同样以 GPL-3.0 开源**，并保留版权声明与许可证副本。源文件头部均已附上 GPL 声明。
+
+按 GPL 的要求，本项目分发的二进制产物对应的**完整源代码**即本仓库内容，对应版本可从标签获取：
+
+```cmd
+git clone https://github.com/mypc1995/WeChatMulti.git
+git checkout v6.0.0
 ```
 
 ---
