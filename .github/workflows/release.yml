@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '要发布的标签，例如 v6.0.0'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: 构建并发布
+    runs-on: windows-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: 还原依赖
+        run: dotnet restore WeChatMulti.sln
+
+      - name: 发布主程序 (net48)
+        run: dotnet publish WeChatMulti\WeChatMulti.csproj -c Release -f net48 -o artifacts --nologo
+
+      - name: 打包 zip
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.inputs.tag || github.ref_name }}"
+          Compress-Archive `
+            -Path artifacts\WeChatMulti.exe, artifacts\WeChatMulti.exe.config `
+            -DestinationPath "artifacts\WeChatMulti-$tag.zip"
+          Get-ChildItem artifacts | Select-Object Name, Length
+
+      - name: 创建或更新 Release
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ github.event.inputs.tag || github.ref_name }}"
+          $zip = "artifacts\WeChatMulti-$tag.zip"
+
+          # 发布附注优先取仓库里的说明文件，没有则退化为一行提示
+          $notesArgs = @()
+          if (Test-Path '.github/release-notes.md') {
+            $notesArgs = @('--notes-file', '.github/release-notes.md')
+          }
+
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Release $tag 已存在，覆盖附件"
+            gh release upload $tag $zip artifacts\WeChatMulti.exe artifacts\WeChatMulti.exe.config `
+              --clobber --repo $env:GITHUB_REPOSITORY
+          }
+          else {
+            Write-Host "创建 Release $tag"
+            gh release create $tag $zip artifacts\WeChatMulti.exe artifacts\WeChatMulti.exe.config `
+              --title "微信多开工具 $tag" `
+              @notesArgs `
+              --repo $env:GITHUB_REPOSITORY
+          }
+
+      - name: 校验附件已上传
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ github.event.inputs.tag || github.ref_name }}"
+          $assets = gh release view $tag --repo $env:GITHUB_REPOSITORY --json assets --jq '.assets[].name'
+          Write-Host "已上传附件:`n$assets"
+          if ($assets -notcontains "WeChatMulti.exe") {
+            throw "附件 WeChatMulti.exe 未上传成功"
+          }

@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: 构建校验
+    runs-on: windows-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: 还原依赖
+        run: dotnet restore WeChatMulti.sln
+
+      - name: 构建整个解决方案
+        run: dotnet build WeChatMulti.sln -c Release --no-restore --nologo
+
+      - name: 校验命令行模式
+        shell: pwsh
+        run: |
+          # 用一个无效路径触发 CLI 分支：不会真的启动微信，只验证参数解析与退出码。
+          $exe = ".\WeChatMulti\bin\Release\net48\WeChatMulti.exe"
+          $p = Start-Process -FilePath $exe `
+                -ArgumentList '--path', 'C:\nonexistent\Weixin.exe', '--launch', '1' `
+                -Wait -PassThru -NoNewWindow
+          Write-Host "退出码: $($p.ExitCode)"
+          if ($p.ExitCode -ne 2) {
+            throw "期望退出码 2（未识别路径），实际为 $($p.ExitCode)"
+          }
+          Write-Host "命令行模式校验通过"
