@@ -1,0 +1,26 @@
+# ---------- .NET / Visual Studio ----------
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.pdb
+*.mdb
+*.tlog
+*.lastbuildstate
+.vs/
+.vscode/
+.idea/
+TestResults/
+[Dd]ebug/
+
+# 本地手工发布目录（陈旧产物，正式可执行文件在 release/）
+/微信多开工具/
+
+# ---------- 系统垃圾 ----------
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.tmp
+*.log
